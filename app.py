@@ -1,5 +1,7 @@
 from typing import Any
 from flask import Flask, jsonify
+from random import choice
+
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
@@ -40,7 +42,7 @@ def hello_world():  # Эта функция-обработчик будет вы
     return jsonify(hello="Hello, World!"), 200
 
 
-@app.route("/about")
+@app.route("/about")  # Это статический URL
 def about():
    return jsonify(about_me), 200
 
@@ -52,7 +54,7 @@ def get_quotes() -> list[dict[str, Any]]:
    return quotes  
 
 
-@app.route("/params/<value>")
+@app.route("/params/<value>")  # Это пример динамического URL'а
 def param_example(value: str):
     return jsonify(param=value)
 
@@ -70,6 +72,17 @@ def get_quote(quote_id: int) -> dict:
          return jsonify(quote), 200 
    return {"error": f"Quote with id={quote_id} not found"}, 404               
 
+
+@app.get("/quotes/count")
+def quotes_count():
+   """Function for task3 of Practice part1."""
+   return jsonify(count=len(quotes))
+
+
+@app.route("/quotes/random", methods=["GET"])
+def random_quote() -> dict:
+   """Function for task4 of Practice part1."""
+   return jsonify(choice(quotes))
 
 
 if __name__ == "__main__":
