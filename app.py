@@ -1,5 +1,5 @@
 from typing import Any
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from random import choice
 
 
@@ -83,6 +83,26 @@ def quotes_count():
 def random_quote() -> dict:
    """Function for task4 of Practice part1."""
    return jsonify(choice(quotes))
+
+
+@app.route("/quotes", methods=['POST'])
+def create_quote():
+   """ Функция создает новую цитату в списке."""
+   new_quote = request.json  # json -> dict
+   last_quote = quotes[-1] # Последняя цитата в списке
+   new_id = last_quote["id"] + 1
+   new_quote["id"] = new_id
+   quotes.append(new_quote)
+   return jsonify(new_quote), 201
+
+
+@app.route("/quotes/<int:quote_id>", methods=["DELETE"])
+def delete_quote(quote_id: int):
+   for quote in quotes:
+      if quote["id"] == quote_id:
+         quotes.remove(quote)
+         return jsonify({"message": f"Quote with id={quote_id} has deleted."}), 200 
+   return {"error": f"Quote with id={quote_id} not found."}, 404  
 
 
 if __name__ == "__main__":
