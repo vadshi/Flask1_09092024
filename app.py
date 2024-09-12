@@ -128,6 +128,7 @@ def delete_quote(quote_id: int):
 @app.route("/quotes/filter")
 def filter_quotes():
    filtered_quotes = quotes.copy()
+   # request.args хранит данные, полученные из query parameters
    for key, value in request.args.items():
       if key not in ("author", "rating"):
          return f"Invalid key {key}", HTTPStatus.BAD_REQUEST
