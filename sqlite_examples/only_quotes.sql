@@ -1,0 +1,3 @@
+INSERT INTO "quotes" ("id", "author", "text") VALUES (1,'Rick Cook','Программирование сегодня — это гонка разработчиков программ...');
+INSERT INTO "quotes" ("id", "author", "text") VALUES (2,'Waldi Ravens','Программирование на С похоже на быстрые танцы на только...');
+INSERT INTO "quotes" ("id", "author", "text") VALUES (3,'Yoggi Berra','В теории, теория и практика неразделимы. На практике это не так.');
