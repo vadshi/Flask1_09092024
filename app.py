@@ -1,7 +1,7 @@
 from typing import Any
 from flask import Flask, jsonify, request
 from random import choice
-
+from http import HTTPStatus
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
@@ -92,8 +92,28 @@ def create_quote():
    last_quote = quotes[-1] # Последняя цитата в списке
    new_id = last_quote["id"] + 1
    new_quote["id"] = new_id
+   # Мы проверяем наличие ключа rating и его валидность(от 1 до 5)
+   rating = new_quote.get("rating")
+   if rating is None or rating not in range(1, 6):
+      new_quote["rating"] = 1
    quotes.append(new_quote)
    return jsonify(new_quote), 201
+
+
+@app.route("/quotes/<int:quote_id>", methods=["PUT"])
+def edit_quote(quote_id):
+   new_data = request.json
+   if not set(new_data.keys()) - set(('author', 'rating', 'text')):
+      for quote in quotes:
+         if quote["id"] == quote_id:
+            if "rating" in new_data and new_data["rating"] not in range(1, 6):
+               # Валидируем новое значени рейтинга и случае успеха обновляем данные
+               new_data.pop("rating")
+            quote.update(new_data)
+            return jsonify(quote), HTTPStatus.OK
+   else:
+      return {"error": "Send bad data to update"}, HTTPStatus.BAD_REQUEST 
+   return {"error": f"Quote with id={quote_id} not found."}, 404
 
 
 @app.route("/quotes/<int:quote_id>", methods=["DELETE"])
@@ -103,6 +123,25 @@ def delete_quote(quote_id: int):
          quotes.remove(quote)
          return jsonify({"message": f"Quote with id={quote_id} has deleted."}), 200 
    return {"error": f"Quote with id={quote_id} not found."}, 404  
+
+
+@app.route("/quotes/filter")
+def filter_quotes():
+   filtered_quotes = quotes.copy()
+   for key, value in request.args.items():
+      if key not in ("author", "rating"):
+         return f"Invalid key {key}", HTTPStatus.BAD_REQUEST
+      if key == "rating":
+         value = int(value)
+      filtered_quotes = [quote for quote in filtered_quotes if quote.get(key) == value]
+      # ======== the same as 136 ==========
+      # res_quotes = []
+      # for quote in filtered_quotes:
+      #    if quote[key] == value:
+      #       res_quotes.append(quote)
+      # filtered_quotes = res_quotes.copy() # Делаю независимую копию списка
+      # ===================================
+   return filtered_quotes
 
 
 if __name__ == "__main__":
