@@ -50,30 +50,6 @@ def new_table(name_db: str):
     cursor.close()
     connection.close()
 
-# quotes = [
-#    {
-#        "id": 3,
-#        "author": "Rick Cook",
-#        "text": "Программирование сегодня — это гонка разработчиков программ, стремящихся писать программы с большей и лучшей идиотоустойчивостью, и вселенной, которая пытается создать больше отборных идиотов. Пока вселенная побеждает."
-#    },
-#    {
-#        "id": 5,
-#        "author": "Waldi Ravens",
-#        "text": "Программирование на С похоже на быстрые танцы на только что отполированном полу людей с острыми бритвами в руках."
-#    },
-#    {
-#        "id": 6,
-#        "author": "Mosher’s Law of Software Engineering",
-#        "text": "Не волнуйтесь, если что-то не работает. Если бы всё работало, вас бы уволили."
-#    },
-#    {
-#        "id": 8,
-#        "author": "Yoggi Berra",
-#        "text": "В теории, теория и практика неразделимы. На практике это не так."
-#    },
-
-# ]
-
 
 # URL: /quotes
 @app.route("/quotes")
@@ -164,31 +140,39 @@ def edit_quote(quote_id):
 
 @app.route("/quotes/<int:quote_id>", methods=["DELETE"])
 def delete_quote(quote_id: int):
-   for quote in quotes:
-      if quote["id"] == quote_id:
-         quotes.remove(quote)
-         return jsonify({"message": f"Quote with id={quote_id} has deleted."}), 200 
-   return {"error": f"Quote with id={quote_id} not found."}, 404  
+    delete_sql = f"DELETE FROM quotes WHERE id = ?"
+    params = (quote_id,)
+    connection = get_db()
+    cursor = connection.cursor()
+    cursor.execute(delete_sql, params)  
+    rows = cursor.rowcount  # Кол-во измененных строк
+    if rows:
+        connection.commit()
+        cursor.close()         
+        return jsonify({"message": f"Quote with id {quote_id} has deleted."}), 200
+    connection.rollback()
+    abort(404, f"Quote with id={quote_id} not found")
 
 
-@app.route("/quotes/filter")
-def filter_quotes():
-   filtered_quotes = quotes.copy()
-   # request.args хранит данные, полученные из query parameters
-   for key, value in request.args.items():
-      if key not in ("author", "rating"):
-         return f"Invalid key {key}", HTTPStatus.BAD_REQUEST
-      if key == "rating":
-         value = int(value)
-      filtered_quotes = [quote for quote in filtered_quotes if quote.get(key) == value]
-      # ======== the same as 136 ==========
-      # res_quotes = []
-      # for quote in filtered_quotes:
-      #    if quote[key] == value:
-      #       res_quotes.append(quote)
-      # filtered_quotes = res_quotes.copy() # Делаю независимую копию списка
-      # ===================================
-   return filtered_quotes
+# @app.route("/quotes/filter")
+# def filter_quotes():
+#    """TODO: change to work with database."
+#    filtered_quotes = quotes.copy()
+#    # request.args хранит данные, полученные из query parameters
+#    for key, value in request.args.items():
+#       if key not in ("author", "rating"):
+#          return f"Invalid key {key}", HTTPStatus.BAD_REQUEST
+#       if key == "rating":
+#          value = int(value)
+#       filtered_quotes = [quote for quote in filtered_quotes if quote.get(key) == value]
+#       # ======== the same as 136 ==========
+#       # res_quotes = []
+#       # for quote in filtered_quotes:
+#       #    if quote[key] == value:
+#       #       res_quotes.append(quote)
+#       # filtered_quotes = res_quotes.copy() # Делаю независимую копию списка
+#       # ===================================
+#    return filtered_quotes
 
 
 if __name__ == "__main__":
