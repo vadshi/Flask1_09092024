@@ -5,6 +5,15 @@ from http import HTTPStatus
 from pathlib import Path
 import sqlite3
 from werkzeug.exceptions import HTTPException
+# imports for sqlalchemy
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 BASE_DIR = Path(__file__).parent
@@ -12,21 +21,32 @@ path_to_db = BASE_DIR / "quotes.db"  # <- тут путь к БД
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{BASE_DIR / 'main.db'}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(model_class=Base)
+db.init_app(app)
 
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(path_to_db)
-    return db
 
+class QuoteModel(db.Model):
+    __tablename__ = 'quotes'
 
-@app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
+    id: Mapped[int] = mapped_column(primary_key=True)
+    author: Mapped[str] = mapped_column(String(32), unique=False, index=True)
+    text: Mapped[str] = mapped_column(String(255))
+  
+    def __init__(self, author, text, rating):
+        self.author = author
+        self.text  = text
+        self.rating = rating
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "author": self.author,
+            "text": self.text
+        }
 
 @app.errorhandler(HTTPException)
 def handle_exeption(e):
@@ -34,39 +54,15 @@ def handle_exeption(e):
     return jsonify({"message": e.description}), e.code
 
 
-def new_table(name_db: str):
-    create_table = """
-    CREATE TABLE IF NOT EXISTS quotes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    author TEXT NOT NULL,
-    text TEXT NOT NULL,
-    rating INTEGER NOT NULL
-    );
-    """
-    connection = sqlite3.connect(name_db)
-    cursor = connection.cursor()
-    cursor.execute(create_table)
-    connection.commit()
-    cursor.close()
-    connection.close()
-
 
 # URL: /quotes
 @app.route("/quotes")
 def get_quotes() -> list[dict[str, Any]]:
     """ Функция неявно преобразовывает список словарей в JSON."""
-    select_quotes = "SELECT * FROM quotes"
-    cursor = get_db().cursor()
-    cursor.execute(select_quotes)
-    quotes_db = cursor.fetchall() # get list[tuple]
-    # Подготовка данных для отправки в правильном формате
-    # Необходимо выполнить преобразование:
-    # list[tuple] -> list[dict]
-    keys = ("id", "author", "text", "rating")
+    quotes_db = db.session.scalars(db.select(QuoteModel)).all()
     quotes = []
-    for quote_db in quotes_db:
-        quote = dict(zip(keys, quote_db))
-        quotes.append(quote)
+    for quote in quotes_db:
+        quotes.append(quote.to_dict())
     return jsonify(quotes), 200
 
 
@@ -176,5 +172,4 @@ def delete_quote(quote_id: int):
 
 
 if __name__ == "__main__":
-   new_table('quotes.db')
    app.run(debug=True)
