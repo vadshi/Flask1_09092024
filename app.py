@@ -176,7 +176,7 @@ def filter_quotes():
         return (
             (
                 "Invalid data. Possible keys: author, text, rating. "
-                f"Received: {", ".join(request.args.keys())}"
+                f"Received: {', '.join(request.args.keys())}"
             ),
             HTTPStatus.BAD_REQUEST,
         )
