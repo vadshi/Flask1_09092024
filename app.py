@@ -1,9 +1,7 @@
 from typing import Any
 from flask import Flask, jsonify, request, g, abort
-from random import choice
 from http import HTTPStatus
 from pathlib import Path
-import sqlite3
 from werkzeug.exceptions import HTTPException
 # imports for sqlalchemy
 from flask_sqlalchemy import SQLAlchemy
@@ -11,21 +9,23 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, func
 from sqlalchemy.exc import InvalidRequestError
+from flask_migrate import Migrate
+
 
 class Base(DeclarativeBase):
     pass
 
 
 BASE_DIR = Path(__file__).parent
-path_to_db = BASE_DIR / "quotes.db"  # <- тут путь к БД
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{BASE_DIR / 'main.db'}"
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{BASE_DIR / 'quotes.db'}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
+migrate = Migrate(app, db)
 
 
 
