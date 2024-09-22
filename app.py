@@ -67,7 +67,7 @@ class QuoteModel(db.Model):
 @app.errorhandler(HTTPException)
 def handle_exeption(e):
     """Функция для перехвата HTTP ошибок и возврата в виде JSON."""
-    return jsonify({"message": e.description}), e.code
+    return jsonify({"message": str(e)}), e.code
 
 
 
@@ -92,7 +92,7 @@ def get_author_quotes(author_id):
     for quote in author.quotes:
         quotes.append(quote.to_dict())
     
-    return jsonify(author=author.to_dict(), quotes=quotes), 200
+    return jsonify(author=author.to_dict() | {"quotes": quotes}), 200
 
 
 @app.route("/quotes/<int:quote_id>")
@@ -122,7 +122,7 @@ def create_quote():
         db.session.add(quote)
         db.session.commit()
     except Exception as e:
-        abort(503, f"error: {e.description}")
+        abort(503, f"error: {str(e)}")
     except TypeError:
         return (
             (
@@ -137,7 +137,7 @@ def create_quote():
 
 @app.route("/quotes/<int:quote_id>", methods=["PUT"])
 def edit_quote(quote_id):
-    quote: QuoteModel = db.get_or_404(quote_id)
+    quote: QuoteModel = db.get_or_404(QuoteModel, quote_id)
 
     data: dict = request.json
     if "rating" in data and not data["rating"] in range(1, 6):
@@ -158,14 +158,14 @@ def edit_quote(quote_id):
 
 @app.route("/quotes/<int:quote_id>", methods=["DELETE"])
 def delete_quote(quote_id: int):
-    quote = db.get_or_404(quote_id)
+    quote = db.get_or_404(QuoteModel, quote_id)
     db.session.delete(quote)
     try:
         db.session.commit()
         return f"Quote with id {id} deleted"
     except Exception as e:
         db.session.rollback()
-        abort(503, f"Database error: {e.description}")
+        abort(503, f"Database error: {str(e)}")
 
 
 @app.route("/quotes/filter")
